@@ -1,10 +1,23 @@
 """
 Sistema de dispatch para handlers de diferentes planos de saúde
 """
+import os
 from typing import Dict, Callable, Awaitable, Literal
-from app.handlers.amil import amil_handler
-from app.handlers.generic import generic_handler
 from app.utils.logger import logger, log_with_context
+
+# Importar handlers baseado no ambiente
+if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"):
+    # Ambiente Railway - usar versão simplificada
+    from app.handlers.amil_simple import amil_simple_handler as amil_handler
+else:
+    # Ambiente local - usar versão completa com Playwright
+    try:
+        from app.handlers.amil import amil_handler
+    except ImportError:
+        # Fallback para versão simplificada se Playwright não estiver disponível
+        from app.handlers.amil_simple import amil_simple_handler as amil_handler
+
+from app.handlers.generic import generic_handler
 
 
 class HandlerRegistry:
@@ -16,7 +29,7 @@ class HandlerRegistry:
     
     def _register_handlers(self) -> None:
         """Registra todos os handlers disponíveis"""
-        # Registrar handler do Amil (específico)
+        # Registrar handler do Amil (específico ou simplificado)
         self.register_handler("amil", amil_handler.check_eligibility)
         
         log_with_context(
@@ -24,7 +37,8 @@ class HandlerRegistry:
             "INFO",
             "Handlers registrados",
             registered_plans=list(self._handlers.keys()),
-            generic_fallback=True
+            generic_fallback=True,
+            environment="railway" if os.getenv("RAILWAY_ENVIRONMENT") else "local"
         )
     
     def register_handler(
