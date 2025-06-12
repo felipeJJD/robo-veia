@@ -7,6 +7,8 @@ from app.schemas import WebhookInRequest, WebhookResponse
 from app.dispatch import handler_registry
 from app.utils.http import send_callback
 from app.utils.logger import logger, log_with_context
+import os
+import sys
 
 
 router = APIRouter()
@@ -141,6 +143,28 @@ async def process_eligibility_background(
                 numero=numero,
                 callback_error=str(callback_error)
             )
+
+
+@router.get("/debug")
+async def debug_info() -> dict:
+    """
+    Endpoint de debug para verificar configurações (apenas para desenvolvimento)
+    
+    Returns:
+        Informações de debug do ambiente
+    """
+    return {
+        "environment": {
+            "railway_env": os.getenv("RAILWAY_ENVIRONMENT"),
+            "railway_project": os.getenv("RAILWAY_PROJECT_ID"),
+            "port": os.getenv("PORT"),
+            "python_version": sys.version,
+        },
+        "handlers": {
+            "registered_plans": handler_registry.list_supported_plans(),
+        },
+        "status": "debug_active"
+    }
 
 
 @router.get("/health")
