@@ -1,25 +1,19 @@
 """
-Aplicação FastAPI principal do micro-serviço de elegibilidade
+Aplicação principal FastAPI para o micro-serviço de elegibilidade
 """
-from dotenv import load_dotenv
-load_dotenv()
 import os
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 from app.router import router
 from app.utils.logger import logger, log_with_context
-
-
-# Carregar variáveis de ambiente
-load_dotenv()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Gerencia o ciclo de vida da aplicação
+    Gerenciador de ciclo de vida da aplicação
     """
     # Startup
     log_with_context(
@@ -29,19 +23,6 @@ async def lifespan(app: FastAPI):
         service="robo_veia",
         version="1.0.0"
     )
-    
-    # Verificar variáveis de ambiente essenciais
-    required_env_vars = ["AMIL_LOGIN", "AMIL_PASSWORD"]
-    missing_vars = [var for var in required_env_vars if not os.getenv(var)]
-    
-    if missing_vars:
-        log_with_context(
-            logger,
-            "ERROR",
-            "Variáveis de ambiente faltando",
-            missing_vars=missing_vars
-        )
-        raise Exception(f"Variáveis de ambiente faltando: {missing_vars}")
     
     log_with_context(
         logger,
@@ -106,11 +87,23 @@ async def root():
 if __name__ == "__main__":
     import uvicorn
     
-    # Configuração para desenvolvimento
+    # Configuração para Railway
+    port = int(os.getenv("PORT", 8000))
+    host = "0.0.0.0"
+    
+    log_with_context(
+        logger,
+        "INFO",
+        f"Iniciando servidor na porta {port}",
+        host=host,
+        port=port,
+        environment="railway" if os.getenv("RAILWAY_ENVIRONMENT") else "local"
+    )
+    
     uvicorn.run(
         "app.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-        log_config=None  # Usar nosso logger customizado
+        host=host,
+        port=port,
+        reload=False,  # Desabilitado em produção
+        access_log=True
     ) 
